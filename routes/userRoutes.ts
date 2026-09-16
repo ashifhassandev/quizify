@@ -4,19 +4,27 @@ const router = express.Router();
 import userControllers from "../controllers/userControllers.js";
 import jwtMiddleware from "../middlewares/jwtMiddleware.js";
 
-router.route("/login")
-    .get(userControllers.getUserLogin)
-    .post(userControllers.userLogin);
+router
+  .route("/login")
+  .get(userControllers.getUserLogin)
+  .post(userControllers.userLogin);
 
 router.get("/logout", userControllers.userLogout);
 
-router.route("/signup")
-    .get(userControllers.getUserSignup)
-    .post(userControllers.userSignup);
+router
+  .route("/signup")
+  .get(userControllers.getUserSignup)
+  .post(userControllers.userSignup);
 
 router.get("/verify-email", userControllers.verifyEmail);
 
-router.post("/resend-verification-email", jwtMiddleware, userControllers.resendVerificationEmail);
+router.post(
+  "/resend-verification-email",
+  jwtMiddleware,
+  userControllers.resendVerificationEmail,
+);
+
+router.post("/contact/send-email", userControllers.processSendFeedback);
 
 router.get("/user-profile", jwtMiddleware, userControllers.getUserProfile);
 
