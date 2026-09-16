@@ -20,17 +20,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
-    session({
-        secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: true,
-        cookie: { secure: false },
-    })
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === "production",
+    },
+  }),
 );
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "../public")));
@@ -41,44 +45,44 @@ app.use(flash());
 
 // Flash message middleware
 app.use((req: Request, res: Response, next: NextFunction): void => {
-    res.locals.successMessage = req.flash("success");
-    res.locals.errorMessage = req.flash("error");
-    next();
+  res.locals.successMessage = req.flash("success");
+  res.locals.errorMessage = req.flash("error");
+  next();
 });
 
 interface DecodedToken {
-    firstName: string;
-    lastName: string;
-    isVerified: boolean;
-    role: string;
+  firstName: string;
+  lastName: string;
+  isVerified: boolean;
+  role: string;
 }
 
 // Authentication middleware
 app.use((req: Request, res: Response, next: NextFunction): void => {
-    const token = req.cookies.authToken;
+  const token = req.cookies.authToken;
 
-    if (token) {
-        try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET) as DecodedToken;
-            res.locals.isLoggedIn = true;
-            res.locals.username = `${decoded.firstName} ${decoded.lastName}`.trim();
-            res.locals.isVerified = decoded.isVerified;
-            res.locals.role = decoded.role;
-        } catch (error) {
-            console.error("Invalid token:", (error as Error).message);
-            res.locals.isLoggedIn = false;
-            res.locals.username = null;
-            res.locals.isVerified = false;
-            res.locals.role = null;
-        }
-    } else {
-        res.locals.isLoggedIn = false;
-        res.locals.username = null;
-        res.locals.isVerified = false;
-        res.locals.role = null;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as DecodedToken;
+      res.locals.isLoggedIn = true;
+      res.locals.username = `${decoded.firstName} ${decoded.lastName}`.trim();
+      res.locals.isVerified = decoded.isVerified;
+      res.locals.role = decoded.role;
+    } catch (error) {
+      console.error("Invalid token:", (error as Error).message);
+      res.locals.isLoggedIn = false;
+      res.locals.username = null;
+      res.locals.isVerified = false;
+      res.locals.role = null;
     }
+  } else {
+    res.locals.isLoggedIn = false;
+    res.locals.username = null;
+    res.locals.isVerified = false;
+    res.locals.role = null;
+  }
 
-    next();
+  next();
 });
 
 // Import routes
@@ -90,17 +94,17 @@ app.use("/users", userRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response): void => {
-    const locals = { title: "404 | Page Not Found" };
-    res.status(404).render("404", {
-        locals,
-        layout: "layouts/errorLayout",
-    });
+  const locals = { title: "404 | Page Not Found" };
+  res.status(404).render("404", {
+    locals,
+    layout: "layouts/errorLayout",
+  });
 });
 
 // Start server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
 
 export default app;
